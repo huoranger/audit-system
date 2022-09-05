@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="vip.acheng.audit.mapper.AuditMetaMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="AuditMeta" type="vip.acheng.audit.model.AuditMetaDO">
+        <id column="a_autid_id" property="auditId" />
+        <result column="push_man" property="pushMan" />
+        <result column="audit_type" property="auditType" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="audit_status" property="auditStatus" />
+        <result column="status" property="status" />
+        <result column="safe_level" property="safeLevel" />
+        <result column="auditor" property="auditor" />
+        <result column="auto_auditor" property="autoAuditor" />
+        <result column="back_list" property="backList" />
+        <result column="sensitive_word" property="sensitiveWord" />
+        <result column="suggest" property="suggest" />
+        <result column="pass_auto_audit" property="passAutoAudit" />
+        <collection property="movieDOList"
+                    ofType="vip.acheng.audit.model.MovieDO">
+            <id property="id" column="mid"/>
+            <result property="conId" column="con_id"/>
+            <result property="auditId" column="m_audit_id"/>
+            <result property="title" column="con_title"/>
+            <result property="subtitle" column="con_subtitle"/>
+            <result property="channelEnName" column="channel_en_name"/>
+            <result property="channelName" column="channel_name"/>
+            <collection property="pictures" ofType="java.lang.String" javaType="java.util.List">
+                <result column="url"/>
+            </collection>
+        </collection>
+    </resultMap>
+    <select id="listAuditMetas" resultMap="AuditMeta">
+        select
+            a_autid_id, push_man, audit_type, create_time, update_time, audit_status, status, safe_level, auditor, auto_auditor, back_list, sensitive_word, suggest,
+            m.id as mid, m.con_id, m.con_title, m.con_subtitle, m.channel_en_name, m.channel_name, m.audit_id as m_audit_id, pass_auto_audit,
+            p.id as pid, p.url, p.movie_id
+        from (
+            select
+                audit_id as a_autid_id, push_man, audit_type, create_time, update_time, audit_status, status, safe_level, auditor, auto_auditor, back_list, sensitive_word, suggest, pass_auto_audit
+            from audit_meta
+            <where>
+                <if test="search.pushMan != null">
+                    push_man like CONCAT('%',#{search.pushMan},'%')
+                </if>
+                <if test="search.auditor != null">
+                    and auditor like CONCAT('%',#{search.auditor},'%')
+                </if>
+                <if test="search.createTime != null">
+                    <![CDATA[  and DATE_FORMAT(create_time, '%Y-%m-%d') =
+                            DATE_FORMAT(#{search.createTime}, '%Y-%m-%d')   ]]>
+                </if>
+                <if test="search.updateTime != null">
+                    <![CDATA[  and DATE_FORMAT(update_time, '%Y-%m-%d') =
+                            DATE_FORMAT(#{search.updateTime}, '%Y-%m-%d')   ]]>
+                </if>
+                <if test="search.status != null">
+                    and status like CONCAT('%',#{search.status},'%')
+                </if>
+                <if test="search.auditId != null">
+                    and audit_id like CONCAT('%',#{search.auditId},'%')
+                </if>
+                <if test="search.auditStatus != null">
+                    and audit_status like CONCAT('%',#{search.auditStatus},'%')
+                </if>
+            </where>
+            order by update_time desc
+            <if test="page != null and offset != null">
+                <bind name="startNumber" value="(page - 1) * offset"></bind>
+                limit #{startNumber}, #{offset}
+            </if>
+        ) a
+        left join movie m on a.a_autid_id = m.audit_id
+        left join picture p on m.id = p.movie_id
+        order by update_time desc
+    </select>
+
+    <select id="listAuditedMetas" resultMap="AuditMeta">
+        select
+        a_autid_id, push_man, audit_type, create_time, update_time, audit_status, status, safe_level, auditor, auto_auditor, back_list, sensitive_word, suggest,
+        m.id as mid, m.con_id, m.con_title, m.con_subtitle, m.channel_en_name, m.channel_name, m.audit_id as m_audit_id, pass_auto_audit,
+        p.id as pid, p.url, p.movie_id
+        from (
+        select
+        audit_id as a_autid_id, push_man, audit_type, create_time, update_time, audit_status, status, safe_level, auditor, auto_auditor, back_list, sensitive_word, suggest, pass_auto_audit
+        from audit_meta
+        <where>
+            <if test="search.pushMan != null">
+                push_man like CONCAT('%',#{search.pushMan},'%')
+            </if>
+            <if test="search.auditor != null">
+                and auditor like CONCAT('%',#{search.auditor},'%')
+            </if>
+            <if test="search.createTime != null">
+                <![CDATA[  and DATE_FORMAT(create_time, '%Y-%m-%d') =
+                            DATE_FORMAT(#{search.createTime}, '%Y-%m-%d')   ]]>
+            </if>
+            <if test="search.updateTime != null">
+                <![CDATA[  and DATE_FORMAT(update_time, '%Y-%m-%d') =
+                            DATE_FORMAT(#{search.updateTime}, '%Y-%m-%d')   ]]>
+            </if>
+            <if test="search.status != null and search.status == 2">
+                and (status like CONCAT('%',0,'%') or status like CONCAT('%',1,'%'))
+            </if>
+            <if test="search.auditId != null">
+                and audit_id like CONCAT('%',#{search.auditId},'%')
+            </if>
+            <if test="search.auditStatus != null">
+                and audit_status like CONCAT('%',#{search.auditStatus},'%')
+            </if>
+        </where>
+        order by update_time desc
+        <if test="page != null and offset != null">
+            <bind name="startNumber" value="(page - 1) * offset"></bind>
+            limit #{startNumber}, #{offset}
+        </if>
+        ) a
+        left join movie m on a.a_autid_id = m.audit_id
+        left join picture p on m.id = p.movie_id
+        order by update_time desc
+    </select>
+</mapper>
